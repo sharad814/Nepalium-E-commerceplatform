@@ -11,20 +11,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 
 type Search = {
-  order?: string;
-  method?: string;
-  session_id?: string;
-  pidx?: string;
-  data?: string;
+  order?: string | undefined;
+  method?: string | undefined;
+  session_id?: string | undefined;
+  pidx?: string | undefined;
+  data?: string | undefined;
 };
+
+function str(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
 
 export const Route = createFileRoute("/payment/success")({
   validateSearch: (search: Record<string, unknown>): Search => ({
-    order: typeof search.order === "string" ? search.order : undefined,
-    method: typeof search.method === "string" ? search.method : undefined,
-    session_id: typeof search.session_id === "string" ? search.session_id : undefined,
-    pidx: typeof search.pidx === "string" ? search.pidx : undefined,
-    data: typeof search.data === "string" ? search.data : undefined,
+    order: str(search["order"]),
+    method: str(search["method"]),
+    session_id: str(search["session_id"]),
+    pidx: str(search["pidx"]),
+    data: str(search["data"]),
   }),
   head: () => ({
     meta: [
