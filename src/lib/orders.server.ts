@@ -20,7 +20,7 @@ export type PlaceOrderInput = {
   district: string;
   city: string;
   street: string;
-  note?: string;
+  note?: string | undefined;
   method: Method;
   origin: string;
 };
@@ -223,11 +223,11 @@ export async function startGatewayPayment(
 }
 
 export type ConfirmInput = {
-  orderId?: string;
-  orderNumber?: string;
-  pidx?: string;
-  sessionId?: string;
-  esewaData?: string;
+  orderId?: string | undefined;
+  orderNumber?: string | undefined;
+  pidx?: string | undefined;
+  sessionId?: string | undefined;
+  esewaData?: string | undefined;
 };
 
 export type ConfirmResult = {
