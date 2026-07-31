@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { formatPrice, salePrice } from "@/lib/branding";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -159,14 +158,10 @@ function CartPage() {
                 {formatPrice(subtotal + shipping)}
               </span>
             </div>
-            <Button
-              className="mt-6 w-full rounded-full"
-              size="lg"
-              onClick={() =>
-                toast.info("Checkout with eSewa, Khalti and cards arrives in the next milestone.")
-              }
-            >
-              <ShoppingBag className="mr-2 size-4" /> Proceed to checkout
+            <Button asChild className="mt-6 w-full rounded-full" size="lg">
+              <Link to="/checkout">
+                <ShoppingBag className="mr-2 size-4" /> Proceed to checkout
+              </Link>
             </Button>
             <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="size-3.5" /> Secure payments · Verified sellers
