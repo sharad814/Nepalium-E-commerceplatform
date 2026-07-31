@@ -73,20 +73,17 @@ function CheckoutPage() {
     let active = true;
     void supabase
       .from("profiles")
-      .select("full_name,phone,province,district,city,address")
+      .select("full_name,phone,province,district")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (!active || !data) return;
-        const row = data as Record<string, string | null>;
         setForm((prev) => ({
           ...prev,
-          fullName: prev.fullName || row.full_name || "",
-          phone: prev.phone || row.phone || "",
-          province: prev.province || row.province || "",
-          district: prev.district || row.district || "",
-          city: prev.city || row.city || "",
-          street: prev.street || row.address || "",
+          fullName: prev.fullName || data.full_name || "",
+          phone: prev.phone || data.phone || "",
+          province: prev.province || data.province || "",
+          district: prev.district || data.district || "",
         }));
       });
     return () => {
