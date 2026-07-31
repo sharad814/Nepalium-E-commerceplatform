@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeSellerRouteImport } from './routes/become-seller'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as SellerRouteImport } from './routes/seller'
 import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as ShopRouteImport } from './routes/shop'
@@ -57,6 +58,11 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerRoute = SellerRouteImport.update({
   id: '/seller',
   path: '/seller',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
     | '/seller'
     | '/sellers'
     | '/shop'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
     | '/seller'
     | '/sellers'
     | '/shop'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
     | '/seller'
     | '/sellers'
     | '/shop'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   BecomeSellerRoute: typeof BecomeSellerRoute
   CartRoute: typeof CartRoute
   CategoriesRoute: typeof CategoriesRoute
+  CheckoutRoute: typeof CheckoutRoute
   SellerRoute: typeof SellerRoute
   SellersRoute: typeof SellersRoute
   ShopRoute: typeof ShopRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller': {
       id: '/seller'
       path: '/seller'
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeSellerRoute: BecomeSellerRoute,
   CartRoute: CartRoute,
   CategoriesRoute: CategoriesRoute,
+  CheckoutRoute: CheckoutRoute,
   SellerRoute: SellerRoute,
   SellersRoute: SellersRoute,
   ShopRoute: ShopRoute,
