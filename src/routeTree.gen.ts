@@ -16,9 +16,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BecomeSellerRouteImport } from './routes/become-seller'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as SellerRouteImport } from './routes/seller'
 import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as PaymentFailedRouteImport } from './routes/payment.failed'
+import { Route as PaymentSuccessRouteImport } from './routes/payment.success'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 
@@ -57,6 +61,16 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerRoute = SellerRouteImport.update({
   id: '/seller',
   path: '/seller',
@@ -70,6 +84,16 @@ const SellersRoute = SellersRouteImport.update({
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentFailedRoute = PaymentFailedRouteImport.update({
+  id: '/payment/failed',
+  path: '/payment/failed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
+  id: '/payment/success',
+  path: '/payment/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductSlugRoute = ProductSlugRouteImport.update({
@@ -91,9 +115,13 @@ export interface FileRoutesByFullPath {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
+  '/orders': typeof OrdersRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
+  '/payment/failed': typeof PaymentFailedRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
@@ -105,9 +133,13 @@ export interface FileRoutesByTo {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
+  '/orders': typeof OrdersRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
+  '/payment/failed': typeof PaymentFailedRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
@@ -120,9 +152,13 @@ export interface FileRoutesById {
   '/become-seller': typeof BecomeSellerRoute
   '/cart': typeof CartRoute
   '/categories': typeof CategoriesRoute
+  '/checkout': typeof CheckoutRoute
+  '/orders': typeof OrdersRoute
   '/seller': typeof SellerRoute
   '/sellers': typeof SellersRoute
   '/shop': typeof ShopRoute
+  '/payment/failed': typeof PaymentFailedRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/store/$slug': typeof StoreSlugRoute
 }
@@ -136,9 +172,13 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
+    | '/orders'
     | '/seller'
     | '/sellers'
     | '/shop'
+    | '/payment/failed'
+    | '/payment/success'
     | '/product/$slug'
     | '/store/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -150,9 +190,13 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
+    | '/orders'
     | '/seller'
     | '/sellers'
     | '/shop'
+    | '/payment/failed'
+    | '/payment/success'
     | '/product/$slug'
     | '/store/$slug'
   id:
@@ -164,9 +208,13 @@ export interface FileRouteTypes {
     | '/become-seller'
     | '/cart'
     | '/categories'
+    | '/checkout'
+    | '/orders'
     | '/seller'
     | '/sellers'
     | '/shop'
+    | '/payment/failed'
+    | '/payment/success'
     | '/product/$slug'
     | '/store/$slug'
   fileRoutesById: FileRoutesById
@@ -179,9 +227,13 @@ export interface RootRouteChildren {
   BecomeSellerRoute: typeof BecomeSellerRoute
   CartRoute: typeof CartRoute
   CategoriesRoute: typeof CategoriesRoute
+  CheckoutRoute: typeof CheckoutRoute
+  OrdersRoute: typeof OrdersRoute
   SellerRoute: typeof SellerRoute
   SellersRoute: typeof SellersRoute
   ShopRoute: typeof ShopRoute
+  PaymentFailedRoute: typeof PaymentFailedRoute
+  PaymentSuccessRoute: typeof PaymentSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   StoreSlugRoute: typeof StoreSlugRoute
 }
@@ -237,6 +289,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller': {
       id: '/seller'
       path: '/seller'
@@ -256,6 +322,20 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/failed': {
+      id: '/payment/failed'
+      path: '/payment/failed'
+      fullPath: '/payment/failed'
+      preLoaderRoute: typeof PaymentFailedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/success': {
+      id: '/payment/success'
+      path: '/payment/success'
+      fullPath: '/payment/success'
+      preLoaderRoute: typeof PaymentSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/product/$slug': {
@@ -283,22 +363,16 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeSellerRoute: BecomeSellerRoute,
   CartRoute: CartRoute,
   CategoriesRoute: CategoriesRoute,
+  CheckoutRoute: CheckoutRoute,
+  OrdersRoute: OrdersRoute,
   SellerRoute: SellerRoute,
   SellersRoute: SellersRoute,
   ShopRoute: ShopRoute,
+  PaymentFailedRoute: PaymentFailedRoute,
+  PaymentSuccessRoute: PaymentSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   StoreSlugRoute: StoreSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

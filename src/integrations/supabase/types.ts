@@ -70,6 +70,133 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          image: string | null
+          order_id: string
+          product_id: string | null
+          quantity: number
+          store_id: string | null
+          title: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image?: string | null
+          order_id: string
+          product_id?: string | null
+          quantity: number
+          store_id?: string | null
+          title: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image?: string | null
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          store_id?: string | null
+          title?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          city: string
+          created_at: string
+          delivery_fee: number
+          district: string
+          full_name: string
+          id: string
+          note: string | null
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_payload: Json | null
+          payment_ref: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          phone: string
+          province: string
+          status: Database["public"]["Enums"]["order_status"]
+          street: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          delivery_fee?: number
+          district: string
+          full_name: string
+          id?: string
+          note?: string | null
+          order_number?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_payload?: Json | null
+          payment_ref?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          phone: string
+          province: string
+          status?: Database["public"]["Enums"]["order_status"]
+          street: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          delivery_fee?: number
+          district?: string
+          full_name?: string
+          id?: string
+          note?: string | null
+          order_number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_payload?: Json | null
+          payment_ref?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          phone?: string
+          province?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          street?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null
@@ -311,6 +438,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "seller" | "customer"
       application_status: "pending" | "approved" | "rejected"
+      order_status:
+        | "placed"
+        | "confirmed"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+      payment_method: "cod" | "stripe" | "esewa" | "khalti"
+      payment_status: "pending" | "paid" | "failed" | "refunded"
       product_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -441,6 +576,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "seller", "customer"],
       application_status: ["pending", "approved", "rejected"],
+      order_status: [
+        "placed",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      payment_method: ["cod", "stripe", "esewa", "khalti"],
+      payment_status: ["pending", "paid", "failed", "refunded"],
       product_status: ["pending", "approved", "rejected"],
     },
   },
