@@ -58,20 +58,20 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export type ProductFilters = {
-  search?: string;
-  category?: string;
-  province?: string;
-  district?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minRating?: number;
-  inStockOnly?: boolean;
-  sort?: "newest" | "price-asc" | "price-desc" | "rating" | "discount";
-  featuredOnly?: boolean;
-  dealsOnly?: boolean;
-  storeSlug?: string;
-  limit?: number;
-  offset?: number;
+  search?: string | undefined;
+  category?: string | undefined;
+  province?: string | undefined;
+  district?: string | undefined;
+  minPrice?: number | undefined;
+  maxPrice?: number | undefined;
+  minRating?: number | undefined;
+  inStockOnly?: boolean | undefined;
+  sort?: "newest" | "price-asc" | "price-desc" | "rating" | "discount" | undefined;
+  featuredOnly?: boolean | undefined;
+  dealsOnly?: boolean | undefined;
+  storeSlug?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 };
 
 export async function fetchProducts(
