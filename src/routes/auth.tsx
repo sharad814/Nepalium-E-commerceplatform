@@ -136,20 +136,49 @@ function AuthPage() {
             </TabsList>
 
             <TabsContent value="signin">
-              <form className="mt-6 space-y-4" onSubmit={signIn}>
-                <Field id="signin-email" name="email" label="Email" type="email" icon={Mail} />
-                <Field
-                  id="signin-password"
-                  name="password"
-                  label="Password"
-                  type="password"
-                  icon={Lock}
-                />
-                <Button type="submit" className="w-full rounded-full" disabled={busy}>
-                  {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Sign in
-                </Button>
-              </form>
+              {forgot ? (
+                <form className="mt-6 space-y-4" onSubmit={sendReset}>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your account email and we'll send you a link to set a new password.
+                  </p>
+                  <Field id="forgot-email" name="email" label="Email" type="email" icon={Mail} />
+                  <Button type="submit" className="w-full rounded-full" disabled={busy}>
+                    {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Send reset link
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setForgot(false)}
+                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Back to sign in
+                  </button>
+                </form>
+              ) : (
+                <form className="mt-6 space-y-4" onSubmit={signIn}>
+                  <Field id="signin-email" name="email" label="Email" type="email" icon={Mail} />
+                  <Field
+                    id="signin-password"
+                    name="password"
+                    label="Password"
+                    type="password"
+                    icon={Lock}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setForgot(true)}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <Button type="submit" className="w-full rounded-full" disabled={busy}>
+                    {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Sign in
+                  </Button>
+                </form>
+              )}
             </TabsContent>
+
 
             <TabsContent value="signup">
               <form className="mt-6 space-y-4" onSubmit={signUp}>
