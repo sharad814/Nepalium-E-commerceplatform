@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   Search,
   ShoppingCart,
-  User as UserIcon,
   Menu,
   Store,
   LayoutDashboard,
@@ -25,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { brand } from "@/lib/branding";
@@ -65,7 +65,8 @@ function ThemeToggle() {
 export function Header() {
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
-  const { user, isAdmin, isSeller, signOut } = useAuth();
+  const { user, profile, isAdmin, isSeller, signOut } = useAuth();
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Account";
   const { count } = useCart();
 
   function submitSearch(e: React.FormEvent) {
@@ -152,12 +153,27 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Account menu">
-                  <UserIcon className="size-5" />
+                <Button variant="ghost" className="ml-1 h-10 gap-2 rounded-full px-1.5 sm:pr-3" aria-label="Account menu">
+                  <Avatar className="size-7">
+                    {profile?.avatar_url ? (
+                      <AvatarImage src={profile.avatar_url} alt={displayName} referrerPolicy="no-referrer" />
+                    ) : null}
+                    <AvatarFallback className="bg-gradient-brand text-[11px] text-primary-foreground">
+                      {displayName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden max-w-28 truncate text-sm font-medium sm:inline">
+                    {displayName}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+                <DropdownMenuLabel className="min-w-0">
+                  <div className="truncate font-medium">{displayName}</div>
+                  <div className="truncate text-xs font-normal text-muted-foreground">
+                    {profile?.email ?? user.email}
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/account">
@@ -186,7 +202,14 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void signOut()}>
+                <DropdownMenuItem
+                  onClick={() => {
+                    void (async () => {
+                      await signOut();
+                      void navigate({ to: "/" });
+                    })();
+                  }}
+                >
                   <LogOut className="mr-2 size-4" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
