@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   Search,
   ShoppingCart,
-  User as UserIcon,
   Menu,
   Store,
   LayoutDashboard,
