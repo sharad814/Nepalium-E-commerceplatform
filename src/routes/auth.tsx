@@ -96,7 +96,17 @@ function AuthPage() {
     void navigate({ to: "/" });
   };
 
+  const isLocal =
+    typeof window !== "undefined" &&
+    /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+
   const google = async () => {
+    if (isLocal) {
+      toast.error(
+        "Google sign-in only works on the hosted site. Use email & password when running locally.",
+      );
+      return;
+    }
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -109,6 +119,7 @@ function AuthPage() {
     if (result.redirected) return;
     void navigate({ to: "/" });
   };
+
 
   return (
     <SiteLayout>
@@ -218,6 +229,14 @@ function AuthPage() {
           >
             <GoogleIcon /> Continue with Google
           </Button>
+          {isLocal && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Running locally — Google sign-in is only enabled on the hosted site. Use email &
+              password here.
+            </p>
+          )}
+
+
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Want to sell on {brand.name}?{" "}
