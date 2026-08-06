@@ -229,6 +229,14 @@ function AuthPage() {
           >
             <GoogleIcon /> Continue with Google
           </Button>
+          {isLocal && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Running locally — Google sign-in is only enabled on the hosted site. Use email &
+              password here.
+            </p>
+          )}
+
+
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Want to sell on {brand.name}?{" "}
