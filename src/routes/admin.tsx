@@ -215,10 +215,11 @@ function AdminPage() {
           Approve sellers and moderate product listings before they reach buyers.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: Store, label: "Pending sellers", value: pendingApps.length },
             { icon: Package, label: "Pending products", value: pendingProducts.data?.length ?? 0 },
+            { icon: Wallet, label: "Pending payments", value: pendingPayments.length },
             { icon: Check, label: "Total applications", value: apps.length },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl border border-border bg-card p-6 shadow-soft">
@@ -233,7 +234,9 @@ function AdminPage() {
           <TabsList>
             <TabsTrigger value="sellers">Seller applications</TabsTrigger>
             <TabsTrigger value="products">Product approvals</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="sellers" className="pt-6">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
