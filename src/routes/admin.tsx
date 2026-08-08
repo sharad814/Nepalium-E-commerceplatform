@@ -347,7 +347,85 @@ function AdminPage() {
               </Table>
             </div>
           </TabsContent>
+
+          <TabsContent value="payments" className="pt-6">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentRows.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">
+                        {p.orders?.order_number ?? p.order_id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {p.orders?.full_name ?? "—"}
+                      </TableCell>
+                      <TableCell>{formatPrice(Number(p.amount))}</TableCell>
+                      <TableCell className="uppercase">{p.payment_method}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {p.transaction_id ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            p.payment_status === "paid"
+                              ? "secondary"
+                              : p.payment_status === "failed"
+                                ? "destructive"
+                                : "outline"
+                          }
+                          className="capitalize"
+                        >
+                          {p.payment_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {p.payment_status === "pending" &&
+                          (p.payment_method === "esewa" || p.payment_method === "khalti") && (
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" onClick={() => void decidePayment(p, true)}>
+                                <Check className="mr-1 size-3.5" /> Verify
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void decidePayment(p, false)}
+                              >
+                                <X className="mr-1 size-3.5" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {paymentRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                        No payments recorded yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
         </Tabs>
+
       </div>
     </SiteLayout>
   );
