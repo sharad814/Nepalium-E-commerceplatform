@@ -23,7 +23,16 @@ export type PlaceOrderInput = {
   note?: string | undefined;
   method: Method;
   origin: string;
+  /** Reference entered by the buyer after paying a QR wallet (eSewa / Khalti). */
+  transactionId?: string | undefined;
 };
+
+/** Wallet methods settled by scanning a merchant QR and entering a reference. */
+const QR_METHODS: Method[] = ["esewa", "khalti"];
+
+export function isQrMethod(method: Method): boolean {
+  return QR_METHODS.includes(method);
+}
 
 export type PlaceOrderResult = {
   orderId: string;
@@ -169,23 +178,40 @@ export async function placeOrder(
   if (itemsError) throw new Error(itemsError.message);
 
   let redirect: GatewayRedirect | null = null;
-  try {
-    redirect = await buildRedirect(
-      { ...order, total: Number(order.total) },
-      { name: input.fullName, phone: input.phone },
-      input.origin,
-    );
-  } catch (gatewayError) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("orders").update({ payment_status: "failed" }).eq("id", order.id);
-    throw gatewayError;
+  if (!isQrMethod(input.method)) {
+    try {
+      redirect = await buildRedirect(
+        { ...order, total: Number(order.total) },
+        { name: input.fullName, phone: input.phone },
+        input.origin,
+      );
+    } catch (gatewayError) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("orders").update({ payment_status: "failed" }).eq("id", order.id);
+      throw gatewayError;
+    }
   }
 
-  // Cash on delivery orders are confirmed immediately; the cart is cleared once
-  // the order exists so a failed gateway hand-off never loses the basket.
-  if (input.method === "cod") {
+  // One payment row per order (unique index on order_id keeps double clicks safe).
+  // The amount always comes from the stored order total, never from the client.
+  await supabase.from("payments").upsert(
+    {
+      order_id: order.id,
+      user_id: userId,
+      payment_method: order.payment_method,
+      amount: Number(order.total),
+      transaction_id: isQrMethod(input.method) ? (input.transactionId ?? null) : null,
+      payment_status: "pending",
+    },
+    { onConflict: "order_id" },
+  );
+
+  // Cash on delivery and QR wallet orders keep the basket only until the order
+  // exists, so a failed gateway hand-off never loses the cart.
+  if (input.method === "cod" || isQrMethod(input.method)) {
     await supabase.from("cart_items").delete().eq("user_id", userId);
   }
+
 
   return {
     orderId: order.id,
@@ -277,6 +303,14 @@ export async function confirmPayment(
   if (order.payment_method === "cod") {
     return { ...base, paid: false, message: "You will pay cash when the order is delivered." };
   }
+  if (isQrMethod(order.payment_method)) {
+    return {
+      ...base,
+      paid: false,
+      message:
+        "We received your transaction reference. Our team verifies wallet payments manually, usually within a few hours.",
+    };
+  }
 
   let result: { paid: boolean; raw: unknown };
   if (order.payment_method === "esewa") {
@@ -302,9 +336,20 @@ export async function confirmPayment(
     })
     .eq("id", order.id);
 
+  // Mirror the gateway outcome onto the payment ledger row.
+  await supabaseAdmin
+    .from("payments")
+    .update({
+      payment_status: result.paid ? "paid" : "failed",
+      transaction_id: input.sessionId ?? input.pidx ?? order.order_number,
+      verified_at: result.paid ? new Date().toISOString() : null,
+    })
+    .eq("order_id", order.id);
+
   if (result.paid) {
     await supabase.from("cart_items").delete().eq("user_id", userId);
   }
+
 
   return {
     ...base,

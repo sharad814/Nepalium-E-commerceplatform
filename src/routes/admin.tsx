@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Check, ShieldAlert, Store, Package, X } from "lucide-react";
+import { Check, ShieldAlert, Store, Package, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,30 @@ function AdminPage() {
     },
   });
 
+  const payments = useQuery({
+    queryKey: ["admin-payments"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select(
+          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,verified_at,orders(order_number,full_name,phone)",
+        )
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as {
+        id: string;
+        order_id: string;
+        payment_method: string;
+        amount: number;
+        transaction_id: string | null;
+        payment_status: string;
+        created_at: string;
+        orders: { order_number: string; full_name: string; phone: string } | null;
+      }[];
+    },
+  });
+
   if (loading || !user) return null;
 
   if (!isAdmin) {
@@ -149,8 +173,39 @@ function AdminPage() {
     void qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
 
+  const decidePayment = async (
+    payment: NonNullable<typeof payments.data>[number],
+    approve: boolean,
+  ) => {
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        payment_status: approve ? "paid" : "failed",
+        verified_at: approve ? new Date().toISOString() : null,
+      })
+      .eq("id", payment.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const { error: orderError } = await supabase
+      .from("orders")
+      .update({
+        payment_status: approve ? "paid" : "failed",
+        status: approve ? "confirmed" : "placed",
+        payment_ref: payment.transaction_id,
+      })
+      .eq("id", payment.order_id);
+    if (orderError) toast.error(orderError.message);
+    toast.success(approve ? "Payment verified" : "Payment rejected");
+    void qc.invalidateQueries({ queryKey: ["admin-payments"] });
+  };
+
   const apps = applications.data ?? [];
   const pendingApps = apps.filter((a) => a.status === "pending");
+  const paymentRows = payments.data ?? [];
+  const pendingPayments = paymentRows.filter((p) => p.payment_status === "pending");
+
 
   return (
     <SiteLayout>
@@ -160,10 +215,11 @@ function AdminPage() {
           Approve sellers and moderate product listings before they reach buyers.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: Store, label: "Pending sellers", value: pendingApps.length },
             { icon: Package, label: "Pending products", value: pendingProducts.data?.length ?? 0 },
+            { icon: Wallet, label: "Pending payments", value: pendingPayments.length },
             { icon: Check, label: "Total applications", value: apps.length },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl border border-border bg-card p-6 shadow-soft">
@@ -178,7 +234,9 @@ function AdminPage() {
           <TabsList>
             <TabsTrigger value="sellers">Seller applications</TabsTrigger>
             <TabsTrigger value="products">Product approvals</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="sellers" className="pt-6">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
@@ -289,7 +347,85 @@ function AdminPage() {
               </Table>
             </div>
           </TabsContent>
+
+          <TabsContent value="payments" className="pt-6">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentRows.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">
+                        {p.orders?.order_number ?? p.order_id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {p.orders?.full_name ?? "—"}
+                      </TableCell>
+                      <TableCell>{formatPrice(Number(p.amount))}</TableCell>
+                      <TableCell className="uppercase">{p.payment_method}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {p.transaction_id ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            p.payment_status === "paid"
+                              ? "secondary"
+                              : p.payment_status === "failed"
+                                ? "destructive"
+                                : "outline"
+                          }
+                          className="capitalize"
+                        >
+                          {p.payment_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {p.payment_status === "pending" &&
+                          (p.payment_method === "esewa" || p.payment_method === "khalti") && (
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" onClick={() => void decidePayment(p, true)}>
+                                <Check className="mr-1 size-3.5" /> Verify
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void decidePayment(p, false)}
+                              >
+                                <X className="mr-1 size-3.5" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {paymentRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                        No payments recorded yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
         </Tabs>
+
       </div>
     </SiteLayout>
   );

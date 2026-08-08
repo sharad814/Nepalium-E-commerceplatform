@@ -45,10 +45,15 @@ type Method = "cod" | "esewa" | "khalti" | "stripe";
 
 const METHODS: { id: Method; label: string; hint: string; icon: typeof Wallet }[] = [
   { id: "cod", label: "Cash on delivery", hint: "Pay the rider when your parcel arrives", icon: Banknote },
-  { id: "esewa", label: "eSewa", hint: "Redirects to eSewa's secure payment page", icon: Wallet },
-  { id: "khalti", label: "Khalti", hint: "Pay with Khalti wallet, bank or mobile banking", icon: Wallet },
+  { id: "esewa", label: "eSewa", hint: "Scan our eSewa QR and share the transaction ID", icon: Wallet },
+  { id: "khalti", label: "Khalti", hint: "Scan our Khalti QR and share the transaction ID", icon: Wallet },
   { id: "stripe", label: "Card (Stripe)", hint: "Visa, Mastercard and international cards", icon: CreditCard },
 ];
+
+const QR_DETAILS: Record<"esewa" | "khalti", { label: string; image: string; account: string }> = {
+  esewa: { label: "eSewa", image: "/images/esewa-qr.png", account: "Sharad Pandey · 9749781949" },
+  khalti: { label: "Khalti", image: "/images/khalti-qr.png", account: "Sarad Pandey · 9749781949" },
+};
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -57,6 +62,7 @@ function CheckoutPage() {
   const submitOrder = useServerFn(createOrder);
 
   const [method, setMethod] = useState<Method>("cod");
+  const [transactionId, setTransactionId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -104,14 +110,25 @@ function CheckoutPage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     if (lines.length === 0) {
       toast.error("Your cart is empty");
+      return;
+    }
+    const needsRef = method === "esewa" || method === "khalti";
+    if (needsRef && transactionId.trim().length < 4) {
+      toast.error(`Enter your ${QR_DETAILS[method].label} transaction ID first`);
       return;
     }
     setSubmitting(true);
     try {
       const result = await submitOrder({
-        data: { ...form, method, origin: window.location.origin },
+        data: {
+          ...form,
+          method,
+          origin: window.location.origin,
+          ...(needsRef ? { transactionId: transactionId.trim() } : {}),
+        },
       });
       if (!result.redirect) {
         await navigate({
@@ -281,6 +298,54 @@ function CheckoutPage() {
                   );
                 })}
               </div>
+
+              {(method === "esewa" || method === "khalti") && (
+                <div className="mt-6 rounded-xl border border-border bg-muted/30 p-5">
+                  <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-start">
+                    <div className="mx-auto w-full max-w-[180px] rounded-xl border border-border bg-card p-3">
+                      <img
+                        src={QR_DETAILS[method].image}
+                        alt={`${QR_DETAILS[method].label} payment QR code for Nepalium`}
+                        className="aspect-square w-full rounded-lg object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="font-medium">
+                          Scan this QR code with {QR_DETAILS[method].label} to pay
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {QR_DETAILS[method].account}
+                        </p>
+                      </div>
+                      <p className="text-sm">
+                        Amount to pay:{" "}
+                        <span className="font-display text-lg font-semibold">
+                          {formatPrice(total)}
+                        </span>
+                      </p>
+                      <Field
+                        label={`${QR_DETAILS[method].label} Transaction ID`}
+                        id="transactionId"
+                      >
+                        <Input
+                          id="transactionId"
+                          required
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="e.g. 000AB1CD"
+                        />
+                      </Field>
+                      <p className="text-xs text-muted-foreground">
+                        Pay first, then paste the transaction/reference ID from your wallet receipt.
+                        Your order stays pending until our team verifies the payment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5" /> Payments are verified on our servers before an order is
                 confirmed.
