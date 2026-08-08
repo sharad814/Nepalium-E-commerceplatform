@@ -18,6 +18,16 @@ const addressSchema = z.object({
   note: z.string().trim().max(500).optional().default(""),
   method: z.enum(["cod", "stripe", "esewa", "khalti"]),
   origin: z.string().url(),
+  transactionId: z.string().trim().max(80).optional(),
+}).superRefine((value, ctx) => {
+  const needsRef = value.method === "esewa" || value.method === "khalti";
+  if (needsRef && (value.transactionId ?? "").length < 4) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["transactionId"],
+      message: "Enter the transaction ID shown in your wallet app.",
+    });
+  }
 });
 
 export const createOrder = createServerFn({ method: "POST" })
