@@ -178,23 +178,40 @@ export async function placeOrder(
   if (itemsError) throw new Error(itemsError.message);
 
   let redirect: GatewayRedirect | null = null;
-  try {
-    redirect = await buildRedirect(
-      { ...order, total: Number(order.total) },
-      { name: input.fullName, phone: input.phone },
-      input.origin,
-    );
-  } catch (gatewayError) {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("orders").update({ payment_status: "failed" }).eq("id", order.id);
-    throw gatewayError;
+  if (!isQrMethod(input.method)) {
+    try {
+      redirect = await buildRedirect(
+        { ...order, total: Number(order.total) },
+        { name: input.fullName, phone: input.phone },
+        input.origin,
+      );
+    } catch (gatewayError) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("orders").update({ payment_status: "failed" }).eq("id", order.id);
+      throw gatewayError;
+    }
   }
 
-  // Cash on delivery orders are confirmed immediately; the cart is cleared once
-  // the order exists so a failed gateway hand-off never loses the basket.
-  if (input.method === "cod") {
+  // One payment row per order (unique index on order_id keeps double clicks safe).
+  // The amount always comes from the stored order total, never from the client.
+  await supabase.from("payments").upsert(
+    {
+      order_id: order.id,
+      user_id: userId,
+      payment_method: order.payment_method,
+      amount: Number(order.total),
+      transaction_id: isQrMethod(input.method) ? (input.transactionId ?? null) : null,
+      payment_status: "pending",
+    },
+    { onConflict: "order_id" },
+  );
+
+  // Cash on delivery and QR wallet orders keep the basket only until the order
+  // exists, so a failed gateway hand-off never loses the cart.
+  if (input.method === "cod" || isQrMethod(input.method)) {
     await supabase.from("cart_items").delete().eq("user_id", userId);
   }
+
 
   return {
     orderId: order.id,
