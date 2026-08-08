@@ -45,10 +45,15 @@ type Method = "cod" | "esewa" | "khalti" | "stripe";
 
 const METHODS: { id: Method; label: string; hint: string; icon: typeof Wallet }[] = [
   { id: "cod", label: "Cash on delivery", hint: "Pay the rider when your parcel arrives", icon: Banknote },
-  { id: "esewa", label: "eSewa", hint: "Redirects to eSewa's secure payment page", icon: Wallet },
-  { id: "khalti", label: "Khalti", hint: "Pay with Khalti wallet, bank or mobile banking", icon: Wallet },
+  { id: "esewa", label: "eSewa", hint: "Scan our eSewa QR and share the transaction ID", icon: Wallet },
+  { id: "khalti", label: "Khalti", hint: "Scan our Khalti QR and share the transaction ID", icon: Wallet },
   { id: "stripe", label: "Card (Stripe)", hint: "Visa, Mastercard and international cards", icon: CreditCard },
 ];
+
+const QR_DETAILS: Record<"esewa" | "khalti", { label: string; image: string; account: string }> = {
+  esewa: { label: "eSewa", image: "/images/esewa-qr.png", account: "Sharad Pandey · 9749781949" },
+  khalti: { label: "Khalti", image: "/images/khalti-qr.png", account: "Sarad Pandey · 9749781949" },
+};
 
 function CheckoutPage() {
   const navigate = useNavigate();
