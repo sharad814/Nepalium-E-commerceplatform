@@ -173,8 +173,39 @@ function AdminPage() {
     void qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
 
+  const decidePayment = async (
+    payment: NonNullable<typeof payments.data>[number],
+    approve: boolean,
+  ) => {
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        payment_status: approve ? "paid" : "failed",
+        verified_at: approve ? new Date().toISOString() : null,
+      })
+      .eq("id", payment.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const { error: orderError } = await supabase
+      .from("orders")
+      .update({
+        payment_status: approve ? "paid" : "failed",
+        status: approve ? "confirmed" : "placed",
+        payment_ref: payment.transaction_id,
+      })
+      .eq("id", payment.order_id);
+    if (orderError) toast.error(orderError.message);
+    toast.success(approve ? "Payment verified" : "Payment rejected");
+    void qc.invalidateQueries({ queryKey: ["admin-payments"] });
+  };
+
   const apps = applications.data ?? [];
   const pendingApps = apps.filter((a) => a.status === "pending");
+  const paymentRows = payments.data ?? [];
+  const pendingPayments = paymentRows.filter((p) => p.payment_status === "pending");
+
 
   return (
     <SiteLayout>
