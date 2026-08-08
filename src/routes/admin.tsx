@@ -83,6 +83,30 @@ function AdminPage() {
     },
   });
 
+  const payments = useQuery({
+    queryKey: ["admin-payments"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select(
+          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,verified_at,orders(order_number,full_name,phone)",
+        )
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as {
+        id: string;
+        order_id: string;
+        payment_method: string;
+        amount: number;
+        transaction_id: string | null;
+        payment_status: string;
+        created_at: string;
+        orders: { order_number: string; full_name: string; phone: string } | null;
+      }[];
+    },
+  });
+
   if (loading || !user) return null;
 
   if (!isAdmin) {
