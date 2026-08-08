@@ -110,14 +110,25 @@ function CheckoutPage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     if (lines.length === 0) {
       toast.error("Your cart is empty");
+      return;
+    }
+    const needsRef = method === "esewa" || method === "khalti";
+    if (needsRef && transactionId.trim().length < 4) {
+      toast.error(`Enter your ${QR_DETAILS[method].label} transaction ID first`);
       return;
     }
     setSubmitting(true);
     try {
       const result = await submitOrder({
-        data: { ...form, method, origin: window.location.origin },
+        data: {
+          ...form,
+          method,
+          origin: window.location.origin,
+          ...(needsRef ? { transactionId: transactionId.trim() } : {}),
+        },
       });
       if (!result.redirect) {
         await navigate({
