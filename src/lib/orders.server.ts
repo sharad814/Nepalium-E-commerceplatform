@@ -23,7 +23,16 @@ export type PlaceOrderInput = {
   note?: string | undefined;
   method: Method;
   origin: string;
+  /** Reference entered by the buyer after paying a QR wallet (eSewa / Khalti). */
+  transactionId?: string | undefined;
 };
+
+/** Wallet methods settled by scanning a merchant QR and entering a reference. */
+const QR_METHODS: Method[] = ["esewa", "khalti"];
+
+export function isQrMethod(method: Method): boolean {
+  return QR_METHODS.includes(method);
+}
 
 export type PlaceOrderResult = {
   orderId: string;
