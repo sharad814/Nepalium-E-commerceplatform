@@ -62,6 +62,7 @@ function CheckoutPage() {
   const submitOrder = useServerFn(createOrder);
 
   const [method, setMethod] = useState<Method>("cod");
+  const [transactionId, setTransactionId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
