@@ -303,6 +303,14 @@ export async function confirmPayment(
   if (order.payment_method === "cod") {
     return { ...base, paid: false, message: "You will pay cash when the order is delivered." };
   }
+  if (isQrMethod(order.payment_method)) {
+    return {
+      ...base,
+      paid: false,
+      message:
+        "We received your transaction reference. Our team verifies wallet payments manually, usually within a few hours.",
+    };
+  }
 
   let result: { paid: boolean; raw: unknown };
   if (order.payment_method === "esewa") {
@@ -328,9 +336,20 @@ export async function confirmPayment(
     })
     .eq("id", order.id);
 
+  // Mirror the gateway outcome onto the payment ledger row.
+  await supabaseAdmin
+    .from("payments")
+    .update({
+      payment_status: result.paid ? "paid" : "failed",
+      transaction_id: input.sessionId ?? input.pidx ?? order.order_number,
+      verified_at: result.paid ? new Date().toISOString() : null,
+    })
+    .eq("order_id", order.id);
+
   if (result.paid) {
     await supabase.from("cart_items").delete().eq("user_id", userId);
   }
+
 
   return {
     ...base,
