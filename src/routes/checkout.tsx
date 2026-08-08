@@ -298,6 +298,54 @@ function CheckoutPage() {
                   );
                 })}
               </div>
+
+              {(method === "esewa" || method === "khalti") && (
+                <div className="mt-6 rounded-xl border border-border bg-muted/30 p-5">
+                  <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-start">
+                    <div className="mx-auto w-full max-w-[180px] rounded-xl border border-border bg-card p-3">
+                      <img
+                        src={QR_DETAILS[method].image}
+                        alt={`${QR_DETAILS[method].label} payment QR code for Nepalium`}
+                        className="aspect-square w-full rounded-lg object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="font-medium">
+                          Scan this QR code with {QR_DETAILS[method].label} to pay
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {QR_DETAILS[method].account}
+                        </p>
+                      </div>
+                      <p className="text-sm">
+                        Amount to pay:{" "}
+                        <span className="font-display text-lg font-semibold">
+                          {formatPrice(total)}
+                        </span>
+                      </p>
+                      <Field
+                        label={`${QR_DETAILS[method].label} Transaction ID`}
+                        id="transactionId"
+                      >
+                        <Input
+                          id="transactionId"
+                          required
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="e.g. 000AB1CD"
+                        />
+                      </Field>
+                      <p className="text-xs text-muted-foreground">
+                        Pay first, then paste the transaction/reference ID from your wallet receipt.
+                        Your order stays pending until our team verifies the payment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5" /> Payments are verified on our servers before an order is
                 confirmed.
