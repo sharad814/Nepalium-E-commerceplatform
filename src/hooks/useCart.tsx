@@ -103,7 +103,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         toast.error("Please sign in to add items to your cart");
         return;
       }
-      const existing = lines.find((l) => l.product_id === productId);
+      // Always check the server for an existing line so a stale local list
+      // can't trigger the unique (user_id, product_id) constraint.
+      const { data: existing, error: findError } = await supabase
+        .from("cart_items")
+        .select("id,quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (findError) {
+        toast.error(findError.message);
+        return;
+      }
       if (existing) {
         const { error } = await supabase
           .from("cart_items")
@@ -116,7 +127,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } else {
         const { error } = await supabase
           .from("cart_items")
-          .insert({ user_id: user.id, product_id: productId, quantity });
+          .upsert(
+            { user_id: user.id, product_id: productId, quantity },
+            { onConflict: "user_id,product_id" },
+          );
         if (error) {
           toast.error(error.message);
           return;
@@ -125,8 +139,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       toast.success("Added to cart");
       await refresh();
     },
-    [user, lines, refresh],
+    [user, refresh],
   );
+
 
   const setQuantity = useCallback(
     async (lineId: string, quantity: number) => {
