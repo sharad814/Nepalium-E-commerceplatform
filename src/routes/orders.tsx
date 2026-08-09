@@ -116,7 +116,13 @@ function OrdersPage() {
                       {order.payment_method === "cod" ? "Cash on delivery" : order.payment_method}
                     </Badge>
                     <Badge
-                      variant={order.payment_status === "paid" ? "default" : "outline"}
+                      variant={
+                        order.payment_status === "paid"
+                          ? "default"
+                          : order.payment_status === "failed"
+                            ? "destructive"
+                            : "outline"
+                      }
                       className="capitalize"
                     >
                       {order.payment_status}
@@ -132,6 +138,57 @@ function OrdersPage() {
                 <p className="mt-3 truncate text-sm text-muted-foreground">
                   {(order.order_items ?? []).map((i) => `${i.quantity} × ${i.title}`).join(", ")}
                 </p>
+                <div className="mt-4 rounded-xl border border-border/70 bg-muted/30 p-3 text-xs">
+                  {(order.payments ?? []).length === 0 ? (
+                    <p className="text-muted-foreground">
+                      {order.payment_method === "cod"
+                        ? "Pay in cash when your parcel arrives."
+                        : paymentLabel[order.payment_status] ?? order.payment_status}
+                      {" · Updated "}
+                      {new Date(order.updated_at ?? order.created_at).toLocaleString()}
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {(order.payments ?? []).map((p) => (
+                        <li key={p.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <Badge
+                            variant={
+                              p.payment_status === "paid"
+                                ? "default"
+                                : p.payment_status === "failed"
+                                  ? "destructive"
+                                  : "outline"
+                            }
+                            className="capitalize"
+                          >
+                            {p.payment_status}
+                          </Badge>
+                          <span className="font-medium uppercase">{p.payment_method}</span>
+                          {p.transaction_id && (
+                            <span className="text-muted-foreground">Txn {p.transaction_id}</span>
+                          )}
+                          <span className="text-muted-foreground">
+                            {paymentLabel[p.payment_status] ?? p.payment_status}
+                          </span>
+                          <span className="text-muted-foreground">
+                            · Submitted {new Date(p.created_at).toLocaleString()}
+                          </span>
+                          {p.verified_at ? (
+                            <span className="text-muted-foreground">
+                              · Verified {new Date(p.verified_at).toLocaleString()}
+                            </span>
+                          ) : p.payment_status === "failed" ? (
+                            <span className="text-muted-foreground">
+                              · Rejected {new Date(p.updated_at).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">· Awaiting admin review</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 {order.payment_status === "failed" && (
                   <Button asChild size="sm" variant="outline" className="mt-4 rounded-full">
                     <Link to="/payment/failed" search={{ order: order.id }}>
