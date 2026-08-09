@@ -392,8 +392,17 @@ function AdminPage() {
                           {p.payment_status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString()}
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {new Date(p.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {p.verified_at ? (
+                          <span>Verified {new Date(p.verified_at).toLocaleString()}</span>
+                        ) : p.payment_status === "failed" ? (
+                          <span>Rejected {new Date(p.updated_at).toLocaleString()}</span>
+                        ) : (
+                          <span>Awaiting verification</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {p.payment_status === "pending" &&
