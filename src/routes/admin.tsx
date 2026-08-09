@@ -90,7 +90,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("payments")
         .select(
-          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,verified_at,orders(order_number,full_name,phone)",
+          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,updated_at,verified_at,orders(order_number,full_name,phone)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -102,6 +102,8 @@ function AdminPage() {
         transaction_id: string | null;
         payment_status: string;
         created_at: string;
+        updated_at: string;
+        verified_at: string | null;
         orders: { order_number: string; full_name: string; phone: string } | null;
       }[];
     },
@@ -360,6 +362,7 @@ function AdminPage() {
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead>Verified / updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -391,8 +394,17 @@ function AdminPage() {
                           {p.payment_status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString()}
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {new Date(p.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {p.verified_at ? (
+                          <span>Verified {new Date(p.verified_at).toLocaleString()}</span>
+                        ) : p.payment_status === "failed" ? (
+                          <span>Rejected {new Date(p.updated_at).toLocaleString()}</span>
+                        ) : (
+                          <span>Awaiting verification</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {p.payment_status === "pending" &&
