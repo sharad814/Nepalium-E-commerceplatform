@@ -102,6 +102,8 @@ function AdminPage() {
         transaction_id: string | null;
         payment_status: string;
         created_at: string;
+        updated_at: string;
+        verified_at: string | null;
         orders: { order_number: string; full_name: string; phone: string } | null;
       }[];
     },
