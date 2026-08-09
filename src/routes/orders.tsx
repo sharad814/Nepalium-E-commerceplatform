@@ -22,6 +22,16 @@ export const Route = createFileRoute("/orders")({
   component: OrdersPage,
 });
 
+type PaymentRow = {
+  id: string;
+  payment_method: string;
+  payment_status: string;
+  transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+  verified_at: string | null;
+};
+
 type OrderRow = {
   id: string;
   order_number: string;
@@ -30,7 +40,16 @@ type OrderRow = {
   payment_status: string;
   status: string;
   created_at: string;
+  updated_at: string;
   order_items: { id: string; title: string; quantity: number }[];
+  payments: PaymentRow[];
+};
+
+const paymentLabel: Record<string, string> = {
+  pending: "Payment pending verification",
+  paid: "Payment verified",
+  failed: "Payment rejected",
+  refunded: "Payment refunded",
 };
 
 function OrdersPage() {
@@ -42,7 +61,9 @@ function OrdersPage() {
     let active = true;
     void supabase
       .from("orders")
-      .select("id,order_number,total,payment_method,payment_status,status,created_at,order_items(id,title,quantity)")
+      .select(
+        "id,order_number,total,payment_method,payment_status,status,created_at,updated_at,order_items(id,title,quantity),payments(id,payment_method,payment_status,transaction_id,created_at,updated_at,verified_at)",
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
