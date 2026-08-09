@@ -90,7 +90,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("payments")
         .select(
-          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,verified_at,orders(order_number,full_name,phone)",
+          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,updated_at,verified_at,orders(order_number,full_name,phone)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
