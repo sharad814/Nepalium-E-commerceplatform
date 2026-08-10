@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Banknote, CreditCard, Loader2, Lock, ShieldCheck, Wallet } from "lucide-react";
+import {
+  Banknote,
+  Building2,
+  CreditCard,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Upload,
+  Wallet,
+} from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +31,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice, salePrice } from "@/lib/branding";
 import { districtsOf, PROVINCES } from "@/lib/nepal";
 import { createOrder } from "@/lib/orders.functions";
+import { getPaymentConfig } from "@/lib/payment-config.functions";
+import { BANK_DETAILS, isBankConfigured } from "@/lib/bank";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -41,12 +52,15 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-type Method = "cod" | "esewa" | "khalti" | "stripe";
+type Method = "cod" | "esewa" | "khalti" | "stripe" | "bank";
+type WalletMode = "gateway" | "manual";
+type GatewayConfig = Awaited<ReturnType<typeof getPaymentConfig>>;
 
 const METHODS: { id: Method; label: string; hint: string; icon: typeof Wallet }[] = [
   { id: "cod", label: "Cash on delivery", hint: "Pay the rider when your parcel arrives", icon: Banknote },
   { id: "esewa", label: "eSewa", hint: "Scan our eSewa QR and share the transaction ID", icon: Wallet },
   { id: "khalti", label: "Khalti", hint: "Scan our Khalti QR and share the transaction ID", icon: Wallet },
+  { id: "bank", label: "Bank transfer", hint: "Transfer to our bank and upload the receipt", icon: Building2 },
   { id: "stripe", label: "Card (Stripe)", hint: "Visa, Mastercard and international cards", icon: CreditCard },
 ];
 
@@ -62,8 +76,24 @@ function CheckoutPage() {
   const submitOrder = useServerFn(createOrder);
 
   const [method, setMethod] = useState<Method>("cod");
+  const [walletMode, setWalletMode] = useState<WalletMode>("manual");
   const [transactionId, setTransactionId] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [config, setConfig] = useState<GatewayConfig | null>(null);
+  const loadConfig = useServerFn(getPaymentConfig);
+
+  useEffect(() => {
+    let active = true;
+    void loadConfig()
+      .then((data) => {
+        if (active) setConfig(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [loadConfig]);
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -115,19 +145,32 @@ function CheckoutPage() {
       toast.error("Your cart is empty");
       return;
     }
-    const needsRef = method === "esewa" || method === "khalti";
-    if (needsRef && transactionId.trim().length < 4) {
-      toast.error(`Enter your ${QR_DETAILS[method].label} transaction ID first`);
+    const isWallet = method === "esewa" || method === "khalti";
+    const manual = method === "bank" || (isWallet && walletMode === "manual");
+    if (manual && transactionId.trim().length < 4) {
+      toast.error("Enter the transaction / reference ID from your payment receipt");
       return;
     }
     setSubmitting(true);
     try {
+      let receiptPath: string | undefined;
+      if (method === "bank" && receipt && user) {
+        const ext = receipt.name.split(".").pop()?.toLowerCase() ?? "jpg";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("payment-receipts")
+          .upload(path, receipt, { upsert: false, contentType: receipt.type });
+        if (uploadError) throw new Error(`Receipt upload failed: ${uploadError.message}`);
+        receiptPath = path;
+      }
       const result = await submitOrder({
         data: {
           ...form,
           method,
           origin: window.location.origin,
-          ...(needsRef ? { transactionId: transactionId.trim() } : {}),
+          ...(isWallet ? { mode: walletMode } : {}),
+          ...(manual ? { transactionId: transactionId.trim() } : {}),
+          ...(receiptPath ? { receiptPath } : {}),
         },
       });
       if (!result.redirect) {
@@ -300,6 +343,71 @@ function CheckoutPage() {
               </div>
 
               {(method === "esewa" || method === "khalti") && (
+                <div className="mt-6 space-y-4">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setWalletMode("gateway")}
+                      aria-pressed={walletMode === "gateway"}
+                      className={`flex-1 rounded-xl border p-3 text-left text-sm transition ${
+                        walletMode === "gateway"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="block font-medium">
+                        Pay with {QR_DETAILS[method].label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        Official {QR_DETAILS[method].label} checkout — you are redirected to their
+                        secure page.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWalletMode("manual")}
+                      aria-pressed={walletMode === "manual"}
+                      className={`flex-1 rounded-xl border p-3 text-left text-sm transition ${
+                        walletMode === "manual"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="block font-medium">Scan our QR instead</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Pay from your wallet app, then share the transaction ID.
+                      </span>
+                    </button>
+                  </div>
+
+                  {walletMode === "gateway" && (
+                    <div className="rounded-xl border border-border bg-muted/30 p-5 text-sm">
+                      <p className="font-medium">
+                        You will be redirected to {QR_DETAILS[method].label} to complete payment.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        We never ask for your wallet password, PIN or OTP — those are entered only on
+                        the provider&apos;s own page.
+                      </p>
+                      {method === "esewa" && config && !config.esewa.live && (
+                        <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                          Configuration required: eSewa is running on the public test environment.
+                          Add <code>ESEWA_PRODUCT_CODE</code> and <code>ESEWA_SECRET_KEY</code> to go
+                          live.
+                        </p>
+                      )}
+                      {method === "khalti" && config && !config.khalti.available && (
+                        <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                          Configuration required: add <code>KHALTI_SECRET_KEY</code> before Khalti
+                          online payments can work. Use the QR option in the meantime.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(method === "esewa" || method === "khalti") && walletMode === "manual" && (
                 <div className="mt-6 rounded-xl border border-border bg-muted/30 p-5">
                   <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-start">
                     <div className="mx-auto w-full max-w-[180px] rounded-xl border border-border bg-card p-3">
@@ -346,6 +454,62 @@ function CheckoutPage() {
                 </div>
               )}
 
+              {method === "bank" && (
+                <div className="mt-6 rounded-xl border border-border bg-muted/30 p-5">
+                  <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-start">
+                    <div className="mx-auto w-full max-w-[180px] rounded-xl border border-border bg-card p-3">
+                      <img
+                        src={BANK_DETAILS.qrImage}
+                        alt="Bank payment QR code for Nepalium"
+                        className="aspect-square w-full rounded-lg object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <dl className="grid gap-1">
+                        <Row label="Bank" value={BANK_DETAILS.bankName} />
+                        <Row label="Account holder" value={BANK_DETAILS.accountHolder} />
+                        <Row label="Account number" value={BANK_DETAILS.accountNumber} />
+                        <Row label="Amount" value={formatPrice(total)} />
+                      </dl>
+                      {!isBankConfigured() && (
+                        <p className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                          Configuration required: update the bank account details in
+                          <code> src/lib/bank.ts</code> and add your bank QR at
+                          <code> public/images/bank-qr.png</code>.
+                        </p>
+                      )}
+                      <Field label="Transaction / reference number" id="transactionId">
+                        <Input
+                          id="transactionId"
+                          required
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="Bank reference from your receipt"
+                        />
+                      </Field>
+                      <Field label="Upload payment receipt (optional)" id="receipt">
+                        <Input
+                          id="receipt"
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+                        />
+                      </Field>
+                      <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <Upload className="mt-0.5 size-3.5 shrink-0" />
+                        Your order number is shown on the confirmation page — quote it in the transfer
+                        remarks. The order stays pending verification until our team approves the
+                        transfer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="size-3.5" /> Payments are verified on our servers before an order is
                 confirmed.
@@ -385,7 +549,11 @@ function CheckoutPage() {
             </div>
             <Button type="submit" size="lg" className="mt-6 w-full rounded-full" disabled={submitting}>
               {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              {method === "cod" ? "Place order" : `Pay ${formatPrice(total)}`}
+              {method === "cod"
+                ? "Place order"
+                : method === "bank"
+                  ? `Submit transfer · ${formatPrice(total)}`
+                  : `Pay ${formatPrice(total)}`}
             </Button>
             <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="size-3.5" /> Buyer protection on every order
@@ -410,6 +578,15 @@ function Field({
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-wrap justify-between gap-2 border-b border-border/60 py-1 last:border-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium break-all">{value}</dd>
     </div>
   );
 }

@@ -90,7 +90,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("payments")
         .select(
-          "id,order_id,user_id,payment_method,amount,transaction_id,payment_status,created_at,updated_at,verified_at,orders(order_number,full_name,phone)",
+          "id,order_id,user_id,payment_method,amount,transaction_id,reference_id,payment_proof_url,payment_status,created_at,updated_at,verified_at,verified_by,orders(order_number,full_name,phone)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -100,10 +100,13 @@ function AdminPage() {
         payment_method: string;
         amount: number;
         transaction_id: string | null;
+        reference_id: string | null;
+        payment_proof_url: string | null;
         payment_status: string;
         created_at: string;
         updated_at: string;
         verified_at: string | null;
+        verified_by: string | null;
         orders: { order_number: string; full_name: string; phone: string } | null;
       }[];
     },
@@ -183,7 +186,8 @@ function AdminPage() {
       .from("payments")
       .update({
         payment_status: approve ? "paid" : "failed",
-        verified_at: approve ? new Date().toISOString() : null,
+        verified_at: new Date().toISOString(),
+        verified_by: user.id,
       })
       .eq("id", payment.id);
     if (error) {
@@ -201,6 +205,17 @@ function AdminPage() {
     if (orderError) toast.error(orderError.message);
     toast.success(approve ? "Payment verified" : "Payment rejected");
     void qc.invalidateQueries({ queryKey: ["admin-payments"] });
+  };
+
+  const openReceipt = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("payment-receipts")
+      .createSignedUrl(path, 300);
+    if (error || !data) {
+      toast.error(error?.message ?? "Could not open the receipt");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
   };
 
   const apps = applications.data ?? [];
@@ -360,6 +375,7 @@ function AdminPage() {
                     <TableHead>Amount</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Transaction ID</TableHead>
+                    <TableHead>Receipt</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Verified / updated</TableHead>
@@ -378,7 +394,20 @@ function AdminPage() {
                       <TableCell>{formatPrice(Number(p.amount))}</TableCell>
                       <TableCell className="uppercase">{p.payment_method}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {p.transaction_id ?? "—"}
+                        {p.transaction_id ?? p.reference_id ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        {p.payment_proof_url ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void openReceipt(p.payment_proof_url!)}
+                          >
+                            View
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -408,7 +437,9 @@ function AdminPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {p.payment_status === "pending" &&
-                          (p.payment_method === "esewa" || p.payment_method === "khalti") && (
+                          (p.payment_method === "esewa" ||
+                            p.payment_method === "khalti" ||
+                            p.payment_method === "bank") && (
                             <div className="flex justify-end gap-2">
                               <Button size="sm" onClick={() => void decidePayment(p, true)}>
                                 <Check className="mr-1 size-3.5" /> Verify
@@ -427,7 +458,7 @@ function AdminPage() {
                   ))}
                   {paymentRows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
                         No payments recorded yet.
                       </TableCell>
                     </TableRow>

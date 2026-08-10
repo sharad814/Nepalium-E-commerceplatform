@@ -16,16 +16,20 @@ const addressSchema = z.object({
   city: z.string().trim().min(2).max(80),
   street: z.string().trim().min(3).max(200),
   note: z.string().trim().max(500).optional().default(""),
-  method: z.enum(["cod", "stripe", "esewa", "khalti"]),
+  method: z.enum(["cod", "stripe", "esewa", "khalti", "bank"]),
   origin: z.string().url(),
   transactionId: z.string().trim().max(80).optional(),
+  mode: z.enum(["gateway", "manual"]).optional(),
+  receiptPath: z.string().trim().max(300).optional(),
 }).superRefine((value, ctx) => {
-  const needsRef = value.method === "esewa" || value.method === "khalti";
+  const needsRef =
+    value.method === "bank" ||
+    ((value.method === "esewa" || value.method === "khalti") && value.mode !== "gateway");
   if (needsRef && (value.transactionId ?? "").length < 4) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["transactionId"],
-      message: "Enter the transaction ID shown in your wallet app.",
+      message: "Enter the transaction / reference ID from your payment receipt.",
     });
   }
 });

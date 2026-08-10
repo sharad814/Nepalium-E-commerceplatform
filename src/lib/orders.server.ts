@@ -23,15 +23,31 @@ export type PlaceOrderInput = {
   note?: string | undefined;
   method: Method;
   origin: string;
-  /** Reference entered by the buyer after paying a QR wallet (eSewa / Khalti). */
+  /** Reference entered by the buyer after paying a QR wallet (eSewa / Khalti / bank). */
   transactionId?: string | undefined;
+  /** "gateway" = official redirect/API flow, "manual" = QR / bank transfer proof. */
+  mode?: "gateway" | "manual" | undefined;
+  /** Storage path of an uploaded bank transfer receipt. */
+  receiptPath?: string | undefined;
 };
 
-/** Wallet methods settled by scanning a merchant QR and entering a reference. */
+/** Wallet methods that can be settled manually by scanning a merchant QR. */
 const QR_METHODS: Method[] = ["esewa", "khalti"];
 
 export function isQrMethod(method: Method): boolean {
   return QR_METHODS.includes(method);
+}
+
+/**
+ * Manual settlement = no gateway hand-off. Bank transfer is always manual;
+ * eSewa / Khalti are manual only when the buyer picked the QR flow.
+ */
+export function isManualSettlement(input: {
+  method: Method;
+  mode?: "gateway" | "manual" | undefined;
+}): boolean {
+  if (input.method === "bank") return true;
+  return isQrMethod(input.method) && input.mode !== "gateway";
 }
 
 export type PlaceOrderResult = {
@@ -177,8 +193,10 @@ export async function placeOrder(
     .insert(items.map((i) => ({ ...i, order_id: order.id })));
   if (itemsError) throw new Error(itemsError.message);
 
+  const manual = isManualSettlement(input);
+
   let redirect: GatewayRedirect | null = null;
-  if (!isQrMethod(input.method)) {
+  if (!manual) {
     try {
       redirect = await buildRedirect(
         { ...order, total: Number(order.total) },
@@ -200,7 +218,9 @@ export async function placeOrder(
       user_id: userId,
       payment_method: order.payment_method,
       amount: Number(order.total),
-      transaction_id: isQrMethod(input.method) ? (input.transactionId ?? null) : null,
+      transaction_id: manual ? (input.transactionId ?? null) : null,
+      reference_id: manual ? (input.transactionId ?? null) : null,
+      payment_proof_url: input.receiptPath ?? null,
       payment_status: "pending",
     },
     { onConflict: "order_id" },
@@ -208,7 +228,7 @@ export async function placeOrder(
 
   // Cash on delivery and QR wallet orders keep the basket only until the order
   // exists, so a failed gateway hand-off never loses the cart.
-  if (input.method === "cod" || isQrMethod(input.method)) {
+  if (input.method === "cod" || manual) {
     await supabase.from("cart_items").delete().eq("user_id", userId);
   }
 
@@ -303,15 +323,24 @@ export async function confirmPayment(
   if (order.payment_method === "cod") {
     return { ...base, paid: false, message: "You will pay cash when the order is delivered." };
   }
-  if (isQrMethod(order.payment_method)) {
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .select("transaction_id,payment_proof_url")
+    .eq("order_id", order.id)
+    .maybeSingle();
+  const settledManually =
+    order.payment_method === "bank" ||
+    (isQrMethod(order.payment_method) &&
+      Boolean(paymentRow?.transaction_id || paymentRow?.payment_proof_url));
+
+  if (settledManually) {
     return {
       ...base,
       paid: false,
       message:
-        "We received your transaction reference. Our team verifies wallet payments manually, usually within a few hours.",
+        "We received your payment reference. Our team verifies manual payments, usually within a few hours.",
     };
   }
-
   let result: { paid: boolean; raw: unknown };
   if (order.payment_method === "esewa") {
     result = await esewaVerify(order.order_number, amount);
