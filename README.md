@@ -980,3 +980,47 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+---
+
+## Running locally
+
+```sh
+npm install
+cp .env.example .env   # fill in your own values
+npm run dev
+```
+
+The app starts on http://localhost:8080.
+
+### Supabase (Lovable Cloud)
+Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
+(and the server-side `SUPABASE_*` equivalents) in `.env`. Real secrets never go in the repo —
+`.env` is git-ignored, `.env.example` documents the keys.
+
+### Google login
+Google sign-in uses the Lovable-managed OAuth broker and works on the preview/published
+domains without extra setup. It does **not** work on `http://localhost` — use email/password
+locally, or add your own Google OAuth client (Client ID + Secret) in Cloud → Users →
+Authentication settings → Google, listing your local URL as an authorized redirect URI.
+
+### eSewa
+Without configuration the integration runs on eSewa's public test environment (`EPAYTEST`).
+For real payments set `ESEWA_PRODUCT_CODE` and `ESEWA_SECRET_KEY` from your eSewa merchant
+account. The manual "scan our QR" flow always works and is verified by an admin.
+
+### Khalti
+Set `KHALTI_SECRET_KEY` (and `KHALTI_ENV=live` for production) from the Khalti merchant
+dashboard to enable the official "Pay with Khalti" redirect. Until then, only the QR +
+transaction-ID flow is offered.
+
+### Bank transfer
+Edit `src/lib/bank.ts` with your bank name, account holder and account number, and place your
+bank QR image at `public/images/bank-qr.png`. Buyers submit a reference number and optional
+receipt (stored in the private `payment-receipts` bucket); admins approve or reject it under
+`/admin` → Payments.
+
+## GitHub sync
+In the Lovable editor open the **+** menu → GitHub → Connect project, authorize the Lovable
+GitHub App and create the repository. After that every change syncs both ways: pushes to
+`main` appear in Lovable, and Lovable edits are committed to GitHub.
