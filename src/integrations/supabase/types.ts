@@ -206,10 +206,12 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_proof_url: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          reference_id: string | null
           transaction_id: string | null
           updated_at: string
           user_id: string | null
           verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           amount?: number
@@ -219,10 +221,12 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          reference_id?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id?: string | null
           verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           amount?: number
@@ -232,10 +236,12 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          reference_id?: string | null
           transaction_id?: string | null
           updated_at?: string
           user_id?: string | null
           verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -508,7 +514,7 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
-      payment_method: "cod" | "stripe" | "esewa" | "khalti"
+      payment_method: "cod" | "stripe" | "esewa" | "khalti" | "bank"
       payment_status: "pending" | "paid" | "failed" | "refunded"
       product_status: "pending" | "approved" | "rejected"
     }
@@ -647,7 +653,7 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
-      payment_method: ["cod", "stripe", "esewa", "khalti"],
+      payment_method: ["cod", "stripe", "esewa", "khalti", "bank"],
       payment_status: ["pending", "paid", "failed", "refunded"],
       product_status: ["pending", "approved", "rejected"],
     },
