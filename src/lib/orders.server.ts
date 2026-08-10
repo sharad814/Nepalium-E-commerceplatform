@@ -341,14 +341,8 @@ export async function confirmPayment(
         "We received your payment reference. Our team verifies manual payments, usually within a few hours.",
     };
   }
-  if (order.payment_method === "bank") {
-    return { ...base, paid: false, message: "Awaiting bank transfer verification." };
-  }
-
   let result: { paid: boolean; raw: unknown };
-  if (order.payment_method === "bank") {
-    result = { paid: false, raw: { error: "manual_method" } };
-  } else if (order.payment_method === "esewa") {
+  if (order.payment_method === "esewa") {
     result = await esewaVerify(order.order_number, amount);
   } else if (order.payment_method === "khalti") {
     result = input.pidx
